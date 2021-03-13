@@ -14,9 +14,11 @@ class Point3d{
   public:
     Vector3d point;
     set<Edge*> edges;
+    int id;
 
     Point3d() = default;
     Point3d(Vector3d);
+    Point3d(Vector3d, int);
 };
 
 #endif

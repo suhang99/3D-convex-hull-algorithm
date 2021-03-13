@@ -8,6 +8,8 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <vector>
+#include <string>
+#include <open3d/Open3D.h>
 #include "point3d.hpp"
 #include "edge.hpp"
 #include "face.hpp"
@@ -22,6 +24,8 @@ class IncrementalConvexHull{
     ~IncrementalConvexHull();
     void printPoints();
     bool run();
+    void plot(string);
+    bool detectCollision(const IncrementalConvexHull*);
   
   private:
     vector<Point3d*> points;         /* all input points */

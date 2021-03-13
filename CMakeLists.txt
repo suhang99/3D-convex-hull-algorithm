@@ -1,6 +1,16 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.1)
+set(CMAKE_CXX_STANDARD 14)
 
 project(convex_hull)
+
+find_package(Open3D HINTS ${CMAKE_INSTALL_PREFIX}/lib/CMake)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${Opezn3D_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Open3D_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${Open3D_EXE_LINKER_FLAGS}")
+
+add_definitions(-DUNIX)
+add_definitions(-O3)
 
 set(SOURCES
     point3d.cpp
@@ -10,8 +20,20 @@ set(SOURCES
     test.cpp
 )
 
+link_directories(${Open3D_LIBRARY_DIRS})
+
 add_executable(test ${SOURCES})
 
 include_directories(
     "/usr/include/eigen3"
+)
+
+target_link_libraries(test
+    PRIVATE
+    ${Open3D_LIBRARIES}
+)
+
+target_include_directories(test 
+    PUBLIC 
+    ${Open3D_INCLUDE_DIRS}
 )

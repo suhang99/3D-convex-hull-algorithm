@@ -5,7 +5,7 @@ IncrementalConvexHull::IncrementalConvexHull(vector<Vector3d> pts){
     /* set all input points */
     points.resize(pts.size());
     for(int i = 0; i < pts.size(); i++){
-        points[i] = new Point3d(pts[i]);        
+        points[i] = new Point3d(pts[i], i);
     }
     /* set all points unexplored */
     flags.resize(pts.size());
@@ -78,6 +78,8 @@ IncrementalConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){
     face->e12 = edge12;
     face->e13 = edge13;
     face->e23 = edge23;
+
+    /* Change the order to make the face pointing outside */
     if(computeVolumn(face, &inner_point) < 0){
         swap(face->p1, face->p3);
         swap(face->e12, face->e23);
@@ -121,7 +123,7 @@ IncrementalConvexHull::_removeEdge(Edge *e){
 bool
 IncrementalConvexHull::run(){
     /* Get the initial convex hull */
-    ConvexHull::_init();
+    _init();
     /* Iterate all the rest points */
     for(int i = 0; i < points.size(); i++){
         /* already explored */
@@ -184,4 +186,65 @@ IncrementalConvexHull::run(){
         flags[i] = true;
     }
     return true;
+}
+
+void
+IncrementalConvexHull::plot(string mode){
+    using namespace open3d::geometry;
+    using namespace open3d::visualization;
+
+    PointCloud pcd;
+    TriangleMesh mesh;
+
+    if(mode == "point"){
+        /* Plot all input points */
+        for(auto i: points)
+            pcd.points_.push_back(i->point);
+
+        shared_ptr<PointCloud> pcd_ptr = make_shared<PointCloud>(pcd);
+        DrawGeometries({pcd_ptr}, "point");
+    }
+    else if(mode == "mesh"){
+        /* plot the mesh of convex hull */
+        for(auto i: points)
+            mesh.vertices_.push_back(i->point);
+        for(auto i: faces)
+            mesh.triangles_.push_back({i->p1->id, i->p2->id, i->p3->id});
+        
+        shared_ptr<TriangleMesh> mesh_ptr = make_shared<TriangleMesh>(mesh);
+        DrawGeometries({mesh_ptr}, "mesh", 640, 480, 50, 50, false, true);
+    }
+    else if(mode == "convex hull"){
+        /* plot both points and mesh */
+        for(auto i: points)
+            pcd.points_.push_back(i->point);
+        for(auto i: points)
+            mesh.vertices_.push_back(i->point);
+        for(auto i: faces)
+            mesh.triangles_.push_back({i->p1->id, i->p2->id, i->p3->id});
+        shared_ptr<PointCloud> pcd_ptr = make_shared<PointCloud>(pcd);
+        shared_ptr<TriangleMesh> mesh_ptr = make_shared<TriangleMesh>(mesh);
+        DrawGeometries({pcd_ptr, mesh_ptr}, "convex hull", 640, 480, 50, 50, false, true);
+    }
+
+}
+
+/* detect whether one convex hull collide with another */
+bool
+IncrementalConvexHull::detectCollision(const IncrementalConvexHull *another){
+    bool 
+    
+    /* Find one face of this which all vertice of another are outside */
+    for(auto face: faces){
+        for(auto vertex: another->vertice){
+            /* Check whether the point is outside the face */
+            if(computeVolumn(face, vertex) < 0){
+
+            }
+        }
+    }
+
+    /* Find faces on the other hull */
+
+
 }
