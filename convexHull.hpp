@@ -21,11 +21,13 @@ using namespace Eigen;
 class IncrementalConvexHull{
   public:
     IncrementalConvexHull(vector<Vector3d>);
+    IncrementalConvexHull(const string);
     ~IncrementalConvexHull();
     void printPoints();
-    bool run();
+    void run();
     void plot(string);
-    bool detectCollision(const IncrementalConvexHull*);
+    bool detectCollision(IncrementalConvexHull*);
+    pair<Vector3d, Vector3d> getBoundingBox();
   
   private:
     vector<Point3d*> points;         /* all input points */

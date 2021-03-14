@@ -14,6 +14,27 @@ IncrementalConvexHull::IncrementalConvexHull(vector<Vector3d> pts){
     }
 }
 
+/* Read from file */
+IncrementalConvexHull::IncrementalConvexHull(const string filename){
+    using namespace open3d::io;
+    using namespace open3d::geometry;
+    using namespace open3d::visualization;
+
+    PointCloud pcd;
+    ReadPointCloudOption options;
+    ReadPointCloud(filename, pcd, options);
+
+    for(int i = 0; i < pcd.points_.size(); i++){
+        points.push_back(new Point3d(pcd.points_[i], i));
+    }
+
+    flags.resize(points.size());
+    for(auto i = flags.begin(); i != flags.end(); i++){
+        *i = false;
+    }
+
+}
+
 IncrementalConvexHull::~IncrementalConvexHull(){
     /* release all points */
     for(auto it = points.begin(); it != points.end(); it++)
@@ -120,12 +141,13 @@ IncrementalConvexHull::_removeEdge(Edge *e){
 }
 
 /* main function of incremental convex hull */
-bool
+void
 IncrementalConvexHull::run(){
     /* Get the initial convex hull */
     _init();
     /* Iterate all the rest points */
     for(int i = 0; i < points.size(); i++){
+        cout<<i<<endl;
         /* already explored */
         if(flags[i] == true){
             continue;
@@ -185,9 +207,11 @@ IncrementalConvexHull::run(){
         /* set this point explored */
         flags[i] = true;
     }
-    return true;
+
+
 }
 
+/* visualize in 3 modes: point, mesh, convex hull */
 void
 IncrementalConvexHull::plot(string mode){
     using namespace open3d::geometry;
@@ -229,22 +253,50 @@ IncrementalConvexHull::plot(string mode){
 
 }
 
-/* detect whether one convex hull collide with another */
-bool
-IncrementalConvexHull::detectCollision(const IncrementalConvexHull *another){
-    bool 
-    
-    /* Find one face of this which all vertice of another are outside */
-    for(auto face: faces){
-        for(auto vertex: another->vertice){
-            /* Check whether the point is outside the face */
-            if(computeVolumn(face, vertex) < 0){
+pair<Vector3d, Vector3d>
+IncrementalConvexHull::getBoundingBox(){
+    /* initialize with inner point */
+    double x_min = inner_point.point[0], x_max = inner_point.point[0];
+    double y_min = inner_point.point[1], y_max = inner_point.point[1];
+    double z_min = inner_point.point[2], z_max = inner_point.point[2];
 
-            }
-        }
+    /* Find bounding box */
+    for(auto vertex: vertice){
+        x_min = vertex->point[0] < x_min ? vertex->point[0] : x_min;
+        x_max = vertex->point[0] > x_max ? vertex->point[0] : x_max;
+        y_min = vertex->point[1] < y_min ? vertex->point[1] : y_min;
+        y_max = vertex->point[1] > y_max ? vertex->point[1] : y_max;
+        z_min = vertex->point[2] < z_min ? vertex->point[2] : z_min;
+        z_max = vertex->point[2] > z_max ? vertex->point[2] : z_max;
     }
 
-    /* Find faces on the other hull */
+    return make_pair(Vector3d(x_min, y_min, z_min), Vector3d(x_max, y_max, z_max));
+}
 
 
+/* detect whether one convex hull collide with another */
+bool
+IncrementalConvexHull::detectCollision(IncrementalConvexHull *another){
+    /* Bounding box test */
+    auto bbox1 = getBoundingBox();
+    auto bbox2 = another->getBoundingBox();
+
+    /* Check whether bounding box overlap */
+    if((bbox1.first[0] < bbox2.first[0] && bbox1.second[0] > bbox2.first[0]) ||
+        bbox2.first[0] < bbox1.first[0] && bbox2.second[0] > bbox1.first[0]){
+        return true;
+    }
+    if((bbox1.first[1] < bbox2.first[1] && bbox1.second[1] > bbox2.first[1]) ||
+        bbox2.first[1] < bbox1.first[1] && bbox2.second[1] > bbox1.first[1]){
+        return true;
+    }
+    if((bbox1.first[2] < bbox2.first[2] && bbox1.second[2] > bbox2.first[2]) ||
+        bbox2.first[2] < bbox1.first[2] && bbox2.second[2] > bbox1.first[2]){
+        return true;
+    }
+
+    /* Separating Axis Theorem in 3D */
+    
+
+    return false;
 }
