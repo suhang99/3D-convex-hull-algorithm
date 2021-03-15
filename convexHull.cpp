@@ -127,7 +127,6 @@ ConvexHull::_init(){
     vertices.insert(points[idx3]);
     vertices.insert(points[idx4]);
 
-    cout<<idx1<<" "<<idx2<<" "<<idx3<<" "<<idx4<<endl;
 }
 
 Edge*
@@ -159,7 +158,7 @@ ConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){
     face->e23 = edge23;
 
     /* Change the order to make the face pointing outside */
-    if(computeVolumn(face, &inner_point) < 0){
+    if(computeVolumn(face, &inner_point) < -1e-9){
         swap(face->p1, face->p3);
         swap(face->e12, face->e23);
     }

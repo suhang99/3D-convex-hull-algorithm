@@ -21,9 +21,19 @@ set(SOURCES
     test.cpp
 )
 
+set(SOURCES2
+    point3d.cpp
+    edge.cpp
+    face.cpp
+    convexHull.cpp
+    visualizer.cpp
+    test_performance.cpp
+)
+
 link_directories(${Open3D_LIBRARY_DIRS})
 
 add_executable(test ${SOURCES})
+add_executable(test_performance ${SOURCES2})
 
 include_directories(
     "/usr/include/eigen3"
@@ -35,6 +45,16 @@ target_link_libraries(test
 )
 
 target_include_directories(test 
+    PUBLIC 
+    ${Open3D_INCLUDE_DIRS}
+)
+
+target_link_libraries(test_performance
+    PRIVATE
+    ${Open3D_LIBRARIES}
+)
+
+target_include_directories(test_performance
     PUBLIC 
     ${Open3D_INCLUDE_DIRS}
 )
