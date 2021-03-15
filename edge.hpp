@@ -5,6 +5,8 @@
 #include <iostream>
 #include <set>
 
+namespace cs271{
+
 /* Declare classes here to avoid cross-reference */
 class Point3d;
 class Face;
@@ -19,5 +21,7 @@ class Edge{
 };
 
 Edge* getEdge(Point3d*, Point3d*);
+
+}
 
 #endif

@@ -1,7 +1,9 @@
 #include "convexHull.hpp"
 
+namespace cs271{
+
 /* Copy input points */
-IncrementalConvexHull::IncrementalConvexHull(vector<Vector3d> pts){
+ConvexHull::ConvexHull(vector<Vector3d> pts){
     /* set all input points */
     points.resize(pts.size());
     for(int i = 0; i < pts.size(); i++){
@@ -15,19 +17,37 @@ IncrementalConvexHull::IncrementalConvexHull(vector<Vector3d> pts){
 }
 
 /* Read from file */
-IncrementalConvexHull::IncrementalConvexHull(const string filename){
+ConvexHull::ConvexHull(const string filename){
     using namespace open3d::io;
     using namespace open3d::geometry;
     using namespace open3d::visualization;
 
-    PointCloud pcd;
-    ReadPointCloudOption options;
-    ReadPointCloud(filename, pcd, options);
-
-    for(int i = 0; i < pcd.points_.size(); i++){
-        points.push_back(new Point3d(pcd.points_[i], i));
+    points.clear();
+    if(filename.substr(filename.size()-3, 3) == "txt"){
+        ifstream ifs(filename);
+        string line;
+        stringstream ss;
+        int line_cnt = 0;
+        while(getline(ifs, line)){
+            ss.clear();
+            double x, y, z;
+            ss<<line;
+            ss>>x>>y>>z;
+            points.push_back(new Point3d(Vector3d(x,y,z), line_cnt));
+            line_cnt++;
+        }
+        ifs.close();
     }
+    else if(filename.substr(filename.size()-3, 3) == "ply"){
+        PointCloud pcd;
+        ReadPointCloudOption options;
+        ReadPointCloud(filename, pcd, options);
 
+        for(int i = 0; i < pcd.points_.size(); i++){
+            points.push_back(new Point3d(pcd.points_[i], i));
+        }
+    }
+    
     flags.resize(points.size());
     for(auto i = flags.begin(); i != flags.end(); i++){
         *i = false;
@@ -35,7 +55,7 @@ IncrementalConvexHull::IncrementalConvexHull(const string filename){
 
 }
 
-IncrementalConvexHull::~IncrementalConvexHull(){
+ConvexHull::~ConvexHull(){
     /* release all points */
     for(auto it = points.begin(); it != points.end(); it++)
         delete *it;
@@ -49,31 +69,69 @@ IncrementalConvexHull::~IncrementalConvexHull(){
 
 /* Print all input points */
 void
-IncrementalConvexHull::printPoints(){
-    for(auto &i: vertice)
-        cout<<"("<<i->point[0]<<","<<i->point[1]<<","<<i->point[2]<<")"<<endl;
+ConvexHull::printPoints(){
+    for(auto i: vertices){
+        cout<<*i<<endl;
+    }
+}
+
+/* Print all faces */
+void
+ConvexHull::printFaces(){
+    for(auto f: faces){
+        cout<<*f->p1<<" "<<*f->p2<<" "<<*f->p3<<endl;
+    }
 }
 
 /* Initialize convex hull with first 4 points */
 void 
-IncrementalConvexHull::_init(){
-    inner_point.point = (points[0]->point + points[1]->point + 
-                         points[2]->point + points[3]->point) / 4;
-    _addFace(points[0], points[1], points[2]);
-    _addFace(points[0], points[1], points[3]);
-    _addFace(points[0], points[2], points[3]);
-    _addFace(points[1], points[2], points[3]);
-    flags[0] = flags[1] = flags[2] = flags[3] = true;
-    vertice.insert(points[0]);
-    vertice.insert(points[1]);
-    vertice.insert(points[2]);
-    vertice.insert(points[3]);
-    // TODO: Colinear and coplanar case
+ConvexHull::_init(){
+    /* Find 4 non-coplanar points */
+    int idx1 = 0, idx2 = -1, idx3 = -1, idx4 = -1;
 
+    /* Find second point (not overlap with point1) */
+    for(int i = idx1 + 1; i < points.size(); i++){
+        if(points[idx1]->point != points[i]->point){
+            idx2 = i;
+            break;
+        }
+    }
+    /* Find third point (not colinear) */
+    for(int i = idx2 + 1; i < points.size(); i++){
+        if(isColinear(points[idx1], points[idx2], points[i]) == false){
+            idx3 = i;
+            break;
+        }
+    }
+    /* Find fourth point (not overlap, coplanar) */
+    for(int i = idx3 + 1; i < points.size(); i++){
+        if(isCoplanar(points[idx1], points[idx2], points[idx3], points[i]) == false){
+            idx4 = i;
+            break;
+        }
+    }
+
+    if(idx4 == -1){
+        cerr<<"Error: Cannot find initial convex hull\n";
+    }
+
+    inner_point.point = (points[idx1]->point + points[idx2]->point + 
+                         points[idx3]->point + points[idx4]->point) / 4;
+    _addFace(points[idx1], points[idx2], points[idx3]);
+    _addFace(points[idx1], points[idx2], points[idx4]);
+    _addFace(points[idx1], points[idx3], points[idx4]);
+    _addFace(points[idx2], points[idx3], points[idx4]);
+    flags[idx1] = flags[idx2] = flags[idx3] = flags[idx4] = true;
+    vertices.insert(points[idx1]);
+    vertices.insert(points[idx2]);
+    vertices.insert(points[idx3]);
+    vertices.insert(points[idx4]);
+
+    cout<<idx1<<" "<<idx2<<" "<<idx3<<" "<<idx4<<endl;
 }
 
 Edge*
-IncrementalConvexHull::_addEdge(Point3d* p1, Point3d* p2){
+ConvexHull::_addEdge(Point3d* p1, Point3d* p2){
     Edge* edge = new Edge(p1, p2);
     p1->edges.insert(edge);
     p2->edges.insert(edge);
@@ -82,7 +140,7 @@ IncrementalConvexHull::_addEdge(Point3d* p1, Point3d* p2){
 }
 
 Face*
-IncrementalConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){   
+ConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){   
     Edge *edge12 = getEdge(p1, p2);
     Edge *edge13 = getEdge(p1, p3);
     Edge *edge23 = getEdge(p2, p3);
@@ -127,13 +185,13 @@ IncrementalConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){
 }
 
 void
-IncrementalConvexHull::_removeFace(Face *f){
+ConvexHull::_removeFace(Face *f){
     faces.erase(f);
     delete f;
 }
 
 void
-IncrementalConvexHull::_removeEdge(Edge *e){
+ConvexHull::_removeEdge(Edge *e){
     edges.erase(e);
     e->p1->edges.erase(e);
     e->p2->edges.erase(e);
@@ -142,22 +200,22 @@ IncrementalConvexHull::_removeEdge(Edge *e){
 
 /* main function of incremental convex hull */
 void
-IncrementalConvexHull::run(){
+ConvexHull::run(){
     /* Get the initial convex hull */
     _init();
     /* Iterate all the rest points */
     for(int i = 0; i < points.size(); i++){
-        cout<<i<<endl;
         /* already explored */
         if(flags[i] == true){
             continue;
         }
+
         /* Find all visible edges and faces */
         set<Face*> visible_faces;
         set<Edge*> visible_edges;
         set<Point3d*> visible_points;
         for(auto face = faces.begin(); face != faces.end(); face++){
-            if(computeVolumn(*face, points[i]) < 0){
+            if(computeVolumn(*face, points[i]) < -1e-9){
                 visible_faces.insert(*face);
                 visible_edges.insert((*face)->e12);
                 visible_edges.insert((*face)->e13);
@@ -198,70 +256,28 @@ IncrementalConvexHull::run(){
             }
             /* remove hidden points from convex hull */
             for(auto it = visible_points.begin(); it != visible_points.end(); it++){
-                vertice.erase(*it);
+                vertices.erase(*it);
             }
             /* add new point to convex hull */
-            vertice.insert(points[i]);
+            vertices.insert(points[i]);
         }
 
         /* set this point explored */
         flags[i] = true;
     }
 
-
 }
 
-/* visualize in 3 modes: point, mesh, convex hull */
-void
-IncrementalConvexHull::plot(string mode){
-    using namespace open3d::geometry;
-    using namespace open3d::visualization;
-
-    PointCloud pcd;
-    TriangleMesh mesh;
-
-    if(mode == "point"){
-        /* Plot all input points */
-        for(auto i: points)
-            pcd.points_.push_back(i->point);
-
-        shared_ptr<PointCloud> pcd_ptr = make_shared<PointCloud>(pcd);
-        DrawGeometries({pcd_ptr}, "point");
-    }
-    else if(mode == "mesh"){
-        /* plot the mesh of convex hull */
-        for(auto i: points)
-            mesh.vertices_.push_back(i->point);
-        for(auto i: faces)
-            mesh.triangles_.push_back({i->p1->id, i->p2->id, i->p3->id});
-        
-        shared_ptr<TriangleMesh> mesh_ptr = make_shared<TriangleMesh>(mesh);
-        DrawGeometries({mesh_ptr}, "mesh", 640, 480, 50, 50, false, true);
-    }
-    else if(mode == "convex hull"){
-        /* plot both points and mesh */
-        for(auto i: points)
-            pcd.points_.push_back(i->point);
-        for(auto i: points)
-            mesh.vertices_.push_back(i->point);
-        for(auto i: faces)
-            mesh.triangles_.push_back({i->p1->id, i->p2->id, i->p3->id});
-        shared_ptr<PointCloud> pcd_ptr = make_shared<PointCloud>(pcd);
-        shared_ptr<TriangleMesh> mesh_ptr = make_shared<TriangleMesh>(mesh);
-        DrawGeometries({pcd_ptr, mesh_ptr}, "convex hull", 640, 480, 50, 50, false, true);
-    }
-
-}
 
 pair<Vector3d, Vector3d>
-IncrementalConvexHull::getBoundingBox(){
+ConvexHull::getBoundingBox(){
     /* initialize with inner point */
     double x_min = inner_point.point[0], x_max = inner_point.point[0];
     double y_min = inner_point.point[1], y_max = inner_point.point[1];
     double z_min = inner_point.point[2], z_max = inner_point.point[2];
 
     /* Find bounding box */
-    for(auto vertex: vertice){
+    for(auto vertex: vertices){
         x_min = vertex->point[0] < x_min ? vertex->point[0] : x_min;
         x_max = vertex->point[0] > x_max ? vertex->point[0] : x_max;
         y_min = vertex->point[1] < y_min ? vertex->point[1] : y_min;
@@ -273,30 +289,70 @@ IncrementalConvexHull::getBoundingBox(){
     return make_pair(Vector3d(x_min, y_min, z_min), Vector3d(x_max, y_max, z_max));
 }
 
+void
+ConvexHull::plot(){
+    using namespace open3d::geometry;
+    using namespace open3d::visualization;
+
+    PointCloud pcd;
+    TriangleMesh mesh;
+    for(auto point: points){
+        pcd.points_.push_back(point->point);
+        mesh.vertices_.push_back(point->point);
+    }
+    for(auto face: faces){
+        mesh.triangles_.push_back({face->p1->id, face->p2->id, face->p3->id});
+    }
+    auto pcd_ptr = make_shared<PointCloud>(pcd);
+    auto mesh_ptr = make_shared<TriangleMesh>(mesh);
+    DrawGeometries({pcd_ptr, mesh_ptr}, "Hull", 640, 480, 50, 50, false, true);
+}
+
 
 /* detect whether one convex hull collide with another */
 bool
-IncrementalConvexHull::detectCollision(IncrementalConvexHull *another){
+isCollide(ConvexHull &hull1, ConvexHull &hull2){
     /* Bounding box test */
-    auto bbox1 = getBoundingBox();
-    auto bbox2 = another->getBoundingBox();
+    auto bbox1 = hull1.getBoundingBox();
+    auto bbox2 = hull2.getBoundingBox();
 
     /* Check whether bounding box overlap */
-    if((bbox1.first[0] < bbox2.first[0] && bbox1.second[0] > bbox2.first[0]) ||
-        bbox2.first[0] < bbox1.first[0] && bbox2.second[0] > bbox1.first[0]){
-        return true;
-    }
-    if((bbox1.first[1] < bbox2.first[1] && bbox1.second[1] > bbox2.first[1]) ||
-        bbox2.first[1] < bbox1.first[1] && bbox2.second[1] > bbox1.first[1]){
-        return true;
-    }
-    if((bbox1.first[2] < bbox2.first[2] && bbox1.second[2] > bbox2.first[2]) ||
-        bbox2.first[2] < bbox1.first[2] && bbox2.second[2] > bbox1.first[2]){
-        return true;
+    if((bbox1.first[0] > bbox2.second[0] || bbox1.second[0] < bbox2.first[0]) &&
+       (bbox1.first[1] > bbox2.second[1] || bbox1.second[1] < bbox2.first[1]) &&
+       (bbox1.first[2] > bbox2.second[2] || bbox1.second[2] < bbox2.first[2])){
+        return false;
+        
     }
 
     /* Separating Axis Theorem in 3D */
-    
+    double min1 = numeric_limits<double>::max(), min2 = numeric_limits<double>::max();
+    double max1 = -numeric_limits<double>::max(), max2 = -numeric_limits<double>::max();
+    for(auto face: hull1.faces){
+        /* Get normal vector */
+        Vector3d normal = (face->p1->point - face->p2->point).cross(face->p1->point - face->p3->point);
+        /* Project all vertices onto the axis */
+        for(auto vertex: hull1.vertices){
+            double distance = normal.dot(vertex->point);
+            min1 = distance < min1 ? distance : min1;
+            max1 = distance > max1 ? distance : max1;
+        }
+        for(auto vertex: hull2.vertices){
+            double distance = normal.dot(vertex->point);
+            min2 = distance < min2 ? distance : min2;
+            max2 = distance > max2 ? distance : max2;
+        }
+        /* Whether points overlap */
+        if(min1 < min2 && min2 < max1 ||
+           min2 < min1 && min1 < max2){
+            continue;
+        }
+        else{
+            /* find separating axis */
+            return false;
+        }
+    }
 
-    return false;
+    return true;
+}
+
 }

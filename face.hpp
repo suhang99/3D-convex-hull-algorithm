@@ -5,6 +5,9 @@
 #include <iostream>
 #include <set>
 
+
+namespace cs271{
+
 class Point3d;
 class Edge;
 
@@ -18,5 +21,7 @@ class Face{
 };
 
 double computeVolumn(Face*, Point3d*);
+Vector3d projectPointToPlane(Face*, Point3d*);
 
+}
 #endif

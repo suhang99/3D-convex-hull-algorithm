@@ -9,6 +9,9 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <limits>
+#include <fstream>
+#include <sstream>
 #include <open3d/Open3D.h>
 #include "point3d.hpp"
 #include "edge.hpp"
@@ -17,23 +20,28 @@
 using namespace std;
 using namespace Eigen;
 
+namespace cs271{
+
 /* Implementation for incremental 3D convex hull algorithm */
-class IncrementalConvexHull{
+class ConvexHull{
+    friend class Visualizer;
+    friend bool isCollide(ConvexHull&, ConvexHull&);
+
   public:
-    IncrementalConvexHull(vector<Vector3d>);
-    IncrementalConvexHull(const string);
-    ~IncrementalConvexHull();
+    ConvexHull(vector<Vector3d>);
+    ConvexHull(const string);
+    ~ConvexHull();
     void printPoints();
+    void printFaces();
     void run();
-    void plot(string);
-    bool detectCollision(IncrementalConvexHull*);
+    void plot();
     pair<Vector3d, Vector3d> getBoundingBox();
   
   private:
     vector<Point3d*> points;         /* all input points */
     vector<bool> flags;              /* Whether the point accessed or not */
-    set<Point3d*> vertice;           /* all points of convex hull */
-    set<Face*> faces;                /* all faces of convex hull */ 
+    set<Point3d*> vertices;          /* all points of convex hull */
+    set<Face*> faces;                /* all faces of convex hull */
     set<Edge*> edges;                /* all edges of convex hull */
     Point3d inner_point;             /* inner point of convex hull */
 
@@ -43,5 +51,9 @@ class IncrementalConvexHull{
     void _removeFace(Face*);
     void _removeEdge(Edge*);
 };
+
+bool isCollide(ConvexHull&, ConvexHull&);
+
+}
 
 #endif

@@ -17,6 +17,7 @@ set(SOURCES
     edge.cpp
     face.cpp
     convexHull.cpp
+    visualizer.cpp
     test.cpp
 )
 
