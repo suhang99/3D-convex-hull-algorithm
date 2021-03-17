@@ -13,6 +13,16 @@ Visualizer::plotPoints(ConvexHull &hull){
 }
 
 void
+Visualizer::plotVertex(ConvexHull &hull){
+    PointCloud pcd;
+    for(auto point: hull.vertices){
+        pcd.points_.push_back(point->point);
+    }
+    auto pcd_ptr = make_shared<PointCloud>(pcd);
+    DrawGeometries({pcd_ptr}, "Vertices");
+}
+
+void
 Visualizer::plotMesh(ConvexHull &hull){
     TriangleMesh mesh;
     for(auto point: hull.points){
@@ -29,6 +39,7 @@ void
 Visualizer::plotHull(ConvexHull &hull){
     PointCloud pcd;
     TriangleMesh mesh;
+    
     for(auto point: hull.points){
         pcd.points_.push_back(point->point);
         mesh.vertices_.push_back(point->point);
@@ -52,7 +63,25 @@ Visualizer::plotPoints2(ConvexHull &hull1, ConvexHull &hull2){
     }
     auto pcd_ptr1 = make_shared<PointCloud>(pcd1);
     auto pcd_ptr2 = make_shared<PointCloud>(pcd2);
+    pcd_ptr1->PaintUniformColor({1, 0, 0});
+    pcd_ptr2->PaintUniformColor({0, 0, 1});
     DrawGeometries({pcd_ptr1, pcd_ptr2}, "Points");
+}
+
+void
+Visualizer::plotVertex2(ConvexHull &hull1, ConvexHull &hull2){
+    PointCloud pcd1, pcd2;
+    for(auto point: hull1.vertices){
+        pcd1.points_.push_back(point->point);
+    }
+    for(auto point: hull2.vertices){
+        pcd2.points_.push_back(point->point);
+    }
+    auto pcd_ptr1 = make_shared<PointCloud>(pcd1);
+    auto pcd_ptr2 = make_shared<PointCloud>(pcd2);
+    pcd_ptr1->PaintUniformColor({1, 0, 0});
+    pcd_ptr2->PaintUniformColor({0, 0, 1});
+    DrawGeometries({pcd_ptr1, pcd_ptr2}, "Vertices");
 }
 
 void
@@ -72,6 +101,8 @@ Visualizer::plotMesh2(ConvexHull &hull1, ConvexHull &hull2){
     }
     auto mesh_ptr1 = make_shared<TriangleMesh>(mesh1);
     auto mesh_ptr2 = make_shared<TriangleMesh>(mesh2);
+    mesh_ptr1->PaintUniformColor({1, 0, 0});
+    mesh_ptr2->PaintUniformColor({0, 0, 1});
     DrawGeometries({mesh_ptr1, mesh_ptr2}, "Mesh", 640, 480, 50, 50, false, true);
 }
 
@@ -97,6 +128,8 @@ Visualizer::plotHull2(ConvexHull &hull1, ConvexHull &hull2){
     auto pcd_ptr2 = make_shared<PointCloud>(pcd2);
     auto mesh_ptr1 = make_shared<TriangleMesh>(mesh1);
     auto mesh_ptr2 = make_shared<TriangleMesh>(mesh2);
+    mesh_ptr1->PaintUniformColor({1, 0, 0});
+    mesh_ptr2->PaintUniformColor({0, 0, 1});
     DrawGeometries({pcd_ptr1, mesh_ptr1, pcd_ptr2, mesh_ptr2}, "Hull", 640, 480, 50, 50, false, true);
 }
 

@@ -16,7 +16,6 @@ class Edge{
     Point3d *p1, *p2;
     Face *f1, *f2;
 
-    Edge();
     Edge(Point3d*, Point3d*);
 };
 

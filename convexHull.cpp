@@ -38,7 +38,7 @@ ConvexHull::ConvexHull(const string filename){
         }
         ifs.close();
     }
-    else if(filename.substr(filename.size()-3, 3) == "ply"){
+    else{
         PointCloud pcd;
         ReadPointCloudOption options;
         ReadPointCloud(filename, pcd, options);
@@ -64,7 +64,7 @@ ConvexHull::~ConvexHull(){
         delete *it;
     /* release all faces */
     for(auto it = faces.begin(); it != faces.end(); it++)
-        delete *it;
+        delete *it;   
 }
 
 /* Print all input points */
@@ -79,7 +79,7 @@ ConvexHull::printPoints(){
 void
 ConvexHull::printFaces(){
     for(auto f: faces){
-        cout<<*f->p1<<" "<<*f->p2<<" "<<*f->p3<<endl;
+        cout<<*(f->p1)<<" "<<*(f->p2)<<" "<<*(f->p3)<<endl;
     }
 }
 
@@ -158,7 +158,7 @@ ConvexHull::_addFace(Point3d *p1, Point3d *p2, Point3d *p3){
     face->e23 = edge23;
 
     /* Change the order to make the face pointing outside */
-    if(computeVolumn(face, &inner_point) < -1e-9){
+    if(computeVolumn(face, &inner_point) < -1e-15){
         swap(face->p1, face->p3);
         swap(face->e12, face->e23);
     }
@@ -191,7 +191,10 @@ ConvexHull::_removeFace(Face *f){
 
 void
 ConvexHull::_removeEdge(Edge *e){
-    edges.erase(e);
+    /* already removed */
+    if(edges.erase(e) == 0){
+        return;
+    }
     e->p1->edges.erase(e);
     e->p2->edges.erase(e);
     delete e;
@@ -208,13 +211,12 @@ ConvexHull::run(){
         if(flags[i] == true){
             continue;
         }
-
         /* Find all visible edges and faces */
         set<Face*> visible_faces;
         set<Edge*> visible_edges;
         set<Point3d*> visible_points;
         for(auto face = faces.begin(); face != faces.end(); face++){
-            if(computeVolumn(*face, points[i]) < -1e-9){
+            if(computeVolumn(*face, points[i]) < -1e-15){
                 visible_faces.insert(*face);
                 visible_edges.insert((*face)->e12);
                 visible_edges.insert((*face)->e13);
@@ -226,36 +228,36 @@ ConvexHull::run(){
         }
         /* merge point into convex hull */
         if(!visible_faces.empty()){
-            for(auto it = visible_edges.begin(); it != visible_edges.end(); it++){
+            for(auto it: visible_edges){
                 Face *new_face = nullptr;
                 /* Find border edge */
-                if(visible_faces.find((*it)->f1) != visible_faces.end() &&
-                   visible_faces.find((*it)->f2) == visible_faces.end()){
+                if(visible_faces.find(it->f1) != visible_faces.end() &&
+                   visible_faces.find(it->f2) == visible_faces.end()){
                     /* construct new face */
-                    (*it)->f1 = nullptr;
-                    new_face = _addFace((*it)->p1, (*it)->p2, points[i]);
-                    visible_points.erase((*it)->p1);
-                    visible_points.erase((*it)->p2);
+                    it->f1 = nullptr;
+                    new_face = _addFace(it->p1, it->p2, points[i]);
+                    visible_points.erase(it->p1);
+                    visible_points.erase(it->p2);
                 }
-                else if(visible_faces.find((*it)->f1) == visible_faces.end() &&
-                        visible_faces.find((*it)->f2) != visible_faces.end()){
-                    (*it)->f2 = nullptr;
-                    new_face = _addFace((*it)->p1, (*it)->p2, points[i]);
-                    visible_points.erase((*it)->p1);
-                    visible_points.erase((*it)->p2);
+                else if(visible_faces.find(it->f1) == visible_faces.end() &&
+                        visible_faces.find(it->f2) != visible_faces.end()){
+                    it->f2 = nullptr;
+                    new_face = _addFace(it->p1, it->p2, points[i]);
+                    visible_points.erase(it->p1);
+                    visible_points.erase(it->p2);
                 }
                 else{
                     /* remove edge */
-                    _removeEdge(*it);
+                    _removeEdge(it);
                 }
             }
             /* Remove all visible faces */
-            for(auto it = visible_faces.begin(); it != visible_faces.end(); it++){
-                _removeFace(*it);
+            for(auto it: visible_faces){
+                _removeFace(it);
             }
             /* remove hidden points from convex hull */
-            for(auto it = visible_points.begin(); it != visible_points.end(); it++){
-                vertices.erase(*it);
+            for(auto it: visible_points){
+                vertices.erase(it);
             }
             /* add new point to convex hull */
             vertices.insert(points[i]);
@@ -288,25 +290,6 @@ ConvexHull::getBoundingBox(){
     return make_pair(Vector3d(x_min, y_min, z_min), Vector3d(x_max, y_max, z_max));
 }
 
-void
-ConvexHull::plot(){
-    using namespace open3d::geometry;
-    using namespace open3d::visualization;
-
-    PointCloud pcd;
-    TriangleMesh mesh;
-    for(auto point: points){
-        pcd.points_.push_back(point->point);
-        mesh.vertices_.push_back(point->point);
-    }
-    for(auto face: faces){
-        mesh.triangles_.push_back({face->p1->id, face->p2->id, face->p3->id});
-    }
-    auto pcd_ptr = make_shared<PointCloud>(pcd);
-    auto mesh_ptr = make_shared<TriangleMesh>(mesh);
-    DrawGeometries({pcd_ptr, mesh_ptr}, "Hull", 640, 480, 50, 50, false, true);
-}
-
 
 /* detect whether one convex hull collide with another */
 bool
@@ -319,14 +302,17 @@ isCollide(ConvexHull &hull1, ConvexHull &hull2){
     if((bbox1.first[0] > bbox2.second[0] || bbox1.second[0] < bbox2.first[0]) &&
        (bbox1.first[1] > bbox2.second[1] || bbox1.second[1] < bbox2.first[1]) &&
        (bbox1.first[2] > bbox2.second[2] || bbox1.second[2] < bbox2.first[2])){
-        return false;
-        
+        return false;   
     }
 
     /* Separating Axis Theorem in 3D */
     double min1 = numeric_limits<double>::max(), min2 = numeric_limits<double>::max();
     double max1 = -numeric_limits<double>::max(), max2 = -numeric_limits<double>::max();
     for(auto face: hull1.faces){
+        min1 = numeric_limits<double>::max();
+        min2 = numeric_limits<double>::max();
+        max1 = -numeric_limits<double>::max();
+        max2 = -numeric_limits<double>::max();
         /* Get normal vector */
         Vector3d normal = (face->p1->point - face->p2->point).cross(face->p1->point - face->p3->point);
         /* Project all vertices onto the axis */
@@ -348,6 +334,65 @@ isCollide(ConvexHull &hull1, ConvexHull &hull2){
         else{
             /* find separating axis */
             return false;
+        }
+    }
+    for(auto face: hull2.faces){
+        min1 = numeric_limits<double>::max();
+        min2 = numeric_limits<double>::max();
+        max1 = -numeric_limits<double>::max();
+        max2 = -numeric_limits<double>::max();
+        /* Get normal vector */
+        Vector3d normal = (face->p1->point - face->p2->point).cross(face->p1->point - face->p3->point);
+        /* Project all vertices onto the axis */
+        for(auto vertex: hull1.vertices){
+            double distance = normal.dot(vertex->point);
+            min1 = distance < min1 ? distance : min1;
+            max1 = distance > max1 ? distance : max1;
+        }
+        for(auto vertex: hull2.vertices){
+            double distance = normal.dot(vertex->point);
+            min2 = distance < min2 ? distance : min2;
+            max2 = distance > max2 ? distance : max2;
+        }
+        /* Whether points overlap */
+        if(min1 < min2 && min2 < max1 ||
+           min2 < min1 && min1 < max2){
+            continue;
+        }
+        else{
+            /* find separating axis */
+            return false;
+        }
+    }
+    for(auto edge1: hull1.edges){
+        for(auto edge2: hull2.edges){
+            min1 = numeric_limits<double>::max();
+            min2 = numeric_limits<double>::max();
+            max1 = -numeric_limits<double>::max();
+            max2 = -numeric_limits<double>::max();
+            Vector3d vec1 = edge1->p2->point - edge1->p2->point;
+            Vector3d vec2 = edge2->p2->point - edge2->p2->point;
+            Vector3d normal = vec1.cross(vec2);
+            /* Project all vertices onto the axis */
+            for(auto vertex: hull1.vertices){
+                double distance = normal.dot(vertex->point);
+                min1 = distance < min1 ? distance : min1;
+                max1 = distance > max1 ? distance : max1;
+            }
+            for(auto vertex: hull2.vertices){
+                double distance = normal.dot(vertex->point);
+                min2 = distance < min2 ? distance : min2;
+                max2 = distance > max2 ? distance : max2;
+            }
+            /* Whether points overlap */
+            if(min1 < min2 && min2 < max1 ||
+            min2 < min1 && min1 < max2){
+                continue;
+            }
+            else{
+                /* find separating axis */
+                return false;
+            }   
         }
     }
 

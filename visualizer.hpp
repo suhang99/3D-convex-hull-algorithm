@@ -20,12 +20,13 @@ class Visualizer{
     Visualizer() = default;
 
     void plotPoints(ConvexHull&);
+    void plotVertex(ConvexHull&);
     void plotMesh(ConvexHull&);
     void plotHull(ConvexHull&);
     void plotPoints2(ConvexHull&, ConvexHull&);
+    void plotVertex2(ConvexHull&, ConvexHull&);
     void plotMesh2(ConvexHull&, ConvexHull&);
     void plotHull2(ConvexHull&, ConvexHull&);
-    void plotHullWithEditing(ConvexHull&);
 };
 }
 

@@ -21,7 +21,7 @@ isCoplanar(Point3d *p1, Point3d *p2, Point3d *p3, Point3d *p4){
            p2->point[0], p2->point[1], p2->point[2], 1,
            p3->point[0], p3->point[1], p3->point[2], 1,
            p4->point[0], p4->point[1], p4->point[2], 1;    
-    return abs(mat.determinant()) < 1e-9 ? true : false;
+    return abs(mat.determinant()) < 1e-15 ? true : false;
 }
 
 }

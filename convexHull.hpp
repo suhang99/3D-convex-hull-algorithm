@@ -12,6 +12,7 @@
 #include <limits>
 #include <fstream>
 #include <sstream>
+#include <unistd.h>
 #include <open3d/Open3D.h>
 #include "point3d.hpp"
 #include "edge.hpp"
@@ -21,6 +22,7 @@ using namespace std;
 using namespace Eigen;
 
 namespace cs271{
+
 
 /* Implementation for incremental 3D convex hull algorithm */
 class ConvexHull{
@@ -34,7 +36,6 @@ class ConvexHull{
     void printPoints();
     void printFaces();
     void run();
-    void plot();
     pair<Vector3d, Vector3d> getBoundingBox();
   
   private:
