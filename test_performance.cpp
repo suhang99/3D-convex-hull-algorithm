@@ -8,7 +8,7 @@
 #include <eigen3/Eigen/Dense>
 #include "convexHull.hpp"
 
-#define NUM_SAMPLES 5
+#define NUM_SAMPLES 2
 
 using namespace std;
 using namespace std::chrono;
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
     high_resolution_clock::time_point hull_clock, collision_clock;
     vector<double> hull_runtime, collision_runtime;
 
-    for(int i = 10; i < 1000; i += 10){
+    for(int i = 10; i < 1000; i += 20){
         /* Generator random points */
         normal_distribution<double> distribution(i, i);
         vector<Vector3d> points1, points2;
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]){
         hull_time /= (2*NUM_SAMPLES);
         collision_time /= NUM_SAMPLES;
 
-        cout<<"convex hull time = "<<hull_time<<", collision time = "<<collision_time<<endl;
+        cout<<"i = "<<i<<", convex hull time = "<<hull_time<<", collision time = "<<collision_time<<endl;
         hull_runtime.push_back(hull_time);
         collision_runtime.push_back(collision_time);
     }
