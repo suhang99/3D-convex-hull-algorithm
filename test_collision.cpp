@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
         cout<<"Collide!"<<endl;
     }
     else{
-        cout<<"Not collide"<<endl;
+        cout<<"Not collide!"<<endl;
     }
 
     if(argc == 4){

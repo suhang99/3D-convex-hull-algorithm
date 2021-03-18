@@ -51,3 +51,6 @@ Usage
 ```
 ./test_performance
 ```
+
+## Note
+- Due to the precision of double type, it may not work well if two points are overlap or very close to each other. Please make sure to remove redundant or invalid point.
